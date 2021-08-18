@@ -28,11 +28,9 @@ arg_parser.add_argument(
     "link_formulario",
     type=str,
     location="args",
-    default="https://docs.google.com/forms/d/e/1FAIpQLSdlfW5bcOK6dS4fLVhRHH4K7BxirzkYUEDOZJmgHYzVHJRf9w/viewform?usp=pp_url",
+    default="https://docs.google.com/forms/d/e/1FAIpQLSdlfW5bcOK6dS4fLVhRHH4K7BxirzkYUEDOZJmgHYzVHJRf9w/viewform/",
     # values="https://docs.google.com/forms/d/e/1FAIpQLSdlfW5bcOK6dS4fLVhRHH4K7BxirzkYUEDOZJmgHYzVHJRf9w/viewform?usp=pp_url&entry.1420785332=Daniel+Pacheco&entry.532722888=Ana+Milena+Garces+Garces&entry.277792291=Italia&entry.201993311=Salida+Hotel+Sabado"
-)
-arg_parser.add_argument(
-    "pais", type=str, choices=tuple(paises), location="args", required=True
+    help='Enlace del cuestionario con "viewform" al final',
 )
 arg_parser.add_argument(
     "coordinador",
@@ -41,10 +39,14 @@ arg_parser.add_argument(
     location="args",
     required=True,
 )
+arg_parser.add_argument(
+    "pais", type=str, choices=tuple(paises), location="args", required=True
+)
+
 url_question_names = {
-    "pais": "entry.277792291",
-    "coordinador": "entry.532722888",
     "nombre": "entry.1420785332",
+    "coordinador": "entry.532722888",
+    "pais": "entry.277792291",
 }
 
 ### Resources
@@ -57,9 +59,13 @@ class FormularioController(Resource):
     def get(self):
         args = arg_parser.parse_args()
         base_link = args["link_formulario"]
+
         url_query = dict(
             (url_question_names[name], val)
-            for name, val in args.iteritems()
-            if name in url_question_names.keys()
+            for name, val in args.items()
+            if name in url_question_names
         )
         url_query["usp"] = "pp_url"
+
+        filled_questions_url = build_url(base_link, args_dict=url_query)
+        return filled_questions_url
