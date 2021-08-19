@@ -10,7 +10,7 @@ def build_url(base_url, args_dict=None):
     return urllib.parse.urlunparse(url_parts)
 
 
-def generate_qr_code(data: str) -> str:
+def generate_qr_code(filename, data: str) -> str:
     """Returns a path location for"""
     qr = qrcode.QRCode(
         version=1,
@@ -18,3 +18,8 @@ def generate_qr_code(data: str) -> str:
         box_size=10,
         border=4,
     )
+    qr.add_data(data)
+    img = qr.make()
+    img_path = f"./images/{filename}"
+    img.save(img_path)
+    return img_path

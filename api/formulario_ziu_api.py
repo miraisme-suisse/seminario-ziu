@@ -3,7 +3,7 @@ from flask_restplus import Namespace, reqparse
 from flask_restplus import Resource
 from enum import Enum, auto
 from .multiple_choices import paises, coordinadores
-from .helpers import build_url
+from .helpers import build_url, generate_qr_code
 from urllib.parse import urlparse, urlunparse
 
 
@@ -25,11 +25,10 @@ arg_parser.add_argument(
     required=True,
 )
 arg_parser.add_argument(
-    "link_formulario",
+    "link_form",
     type=str,
     location="args",
-    default="https://docs.google.com/forms/d/e/1FAIpQLSdlfW5bcOK6dS4fLVhRHH4K7BxirzkYUEDOZJmgHYzVHJRf9w/viewform/",
-    # values="https://docs.google.com/forms/d/e/1FAIpQLSdlfW5bcOK6dS4fLVhRHH4K7BxirzkYUEDOZJmgHYzVHJRf9w/viewform?usp=pp_url&entry.1420785332=Daniel+Pacheco&entry.532722888=Ana+Milena+Garces+Garces&entry.277792291=Italia&entry.201993311=Salida+Hotel+Sabado"
+    default="https://docs.google.com/forms/d/e/1FAIpQLSdlfW5bcOK6dS4fLVhRHH4K7BxirzkYUEDOZJmgHYzVHJRf9w",
     help='Enlace del cuestionario con "viewform" al final',
 )
 arg_parser.add_argument(
@@ -49,6 +48,24 @@ url_question_names = {
     "pais": "entry.277792291",
 }
 
+
+def get_filled_form_url(link_form: str, nombre, coordinador, pais) -> str:
+    """Returns complete url to view google form with filled answers.
+    Example input: {nombre:Daniel Pacheco,coordinador: Ana Milena Garces Garces, pais: Italia}
+    Example output:"https://docs.google.com/forms/d/e/1FAIpQLSdlfW5bcOK6dS4fLVhRHH4K7BxirzkYUEDOZJmgHYzVHJRf9w/viewform?usp=pp_url&entry.1420785332=Daniel+Pacheco&entry.532722888=Ana+Milena+Garces+Garces&entry.277792291=Italia"""
+    # Ex. values=
+    if "viewform" not in link_form:
+        link_form += "viewform" if link_form[-1] == "/" else "/viewform"
+    query_dict = {"nombre": nombre, "coordinador": coordinador, "pais": pais}
+    url_query = dict(
+        (url_question_names[name], val)
+        for name, val in query_dict.items()
+        if name in url_question_names
+    )
+    url_query["usp"] = "pp_url"
+    return build_url(link_form, args_dict=query_dict)
+
+
 ### Resources
 @formulario_ns.route("/")
 class FormularioController(Resource):
@@ -58,14 +75,6 @@ class FormularioController(Resource):
     @formulario_ns.expect(arg_parser)
     def get(self):
         args = arg_parser.parse_args()
-        base_link = args["link_formulario"]
-
-        url_query = dict(
-            (url_question_names[name], val)
-            for name, val in args.items()
-            if name in url_question_names
-        )
-        url_query["usp"] = "pp_url"
-
-        filled_questions_url = build_url(base_link, args_dict=url_query)
-        return filled_questions_url
+        filled_questions_url = get_filled_form_url(**args)
+        img_path = generate_qr_code('test.png',filled_questions_url)
+        return send_from_directory(img_path)
