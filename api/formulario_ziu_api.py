@@ -57,13 +57,15 @@ def get_filled_form_url(link_form: str, nombre, coordinador, pais) -> str:
     if "viewform" not in link_form:
         link_form += "viewform" if link_form[-1] == "/" else "/viewform"
     query_dict = {"nombre": nombre, "coordinador": coordinador, "pais": pais}
+
+    # map keys to url keys
     url_query = dict(
         (url_question_names[name], val)
         for name, val in query_dict.items()
         if name in url_question_names
     )
     url_query["usp"] = "pp_url"
-    return build_url(link_form, args_dict=query_dict)
+    return build_url(link_form, args_dict=url_query)
 
 
 ### Resources
@@ -76,5 +78,11 @@ class FormularioController(Resource):
     def get(self):
         args = arg_parser.parse_args()
         filled_questions_url = get_filled_form_url(**args)
-        img_path = generate_qr_code('test.png',filled_questions_url)
-        return send_from_directory(img_path)
+        file_name = f"{args['nombre']}.PNG"
+        img_as_bytes = generate_qr_code(file_name, filled_questions_url)
+        return send_file(
+            img_as_bytes,
+            mimetype="image/png",
+            as_attachment=True,
+            attachment_filename=file_name,
+        )
